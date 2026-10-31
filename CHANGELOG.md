@@ -16,4 +16,4 @@
 - 研究流程：开题/论文/投稿模板、任务看板、导出前门禁。
 - 引用核验与导出：DOI 核验，GB/T 7714-2015、APA 7，BibTeX/RIS，DOCX。
 - 五个可移植 Agent Skills。
-- macOS/Windows/Linux CI（待 workflow scope 授权后启用）。
+- macOS/Windows/Linux CI（三平台绿）。

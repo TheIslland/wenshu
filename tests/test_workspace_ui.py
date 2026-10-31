@@ -20,6 +20,7 @@ PANELS = (
     "methods",
     "direction",
     "workflow",
+    "delivery",
 )
 
 MODULES = (
@@ -32,6 +33,7 @@ MODULES = (
     "methods",
     "direction",
     "workflow",
+    "delivery",
 )
 
 REQUIRED_IDS = (
@@ -69,6 +71,25 @@ REQUIRED_IDS = (
     "workflow-template",
     "kanban",
     "gate-status",
+    "delivery-gate",
+    "export-markdown",
+    "export-docx",
+    "export-bibtex",
+    "export-ris",
+    "export-style",
+    "export-status",
+    "citation-style",
+    "citation-preview",
+    "citation-text",
+    "citation-warnings",
+    "citation-verify",
+    "citation-counts",
+    "citation-checks",
+    "style-baseline-input",
+    "style-baseline-build",
+    "style-baseline-clear",
+    "style-baseline-status",
+    "style-baseline-summary",
 )
 
 LOCAL_HOSTS = {"testserver", "127.0.0.1", "localhost", "::1"}
@@ -196,3 +217,40 @@ def test_workspace_error_and_empty_state_markers(client, project):
     assert "去设置" in workspace
     assert "empty error-state" in workspace
     assert "showError" in workspace
+
+
+def test_delivery_export_citation_and_gate_wiring(client, project):
+    delivery = client.get("/static/js/delivery.js").text
+    for marker in (
+        "/api/export/",
+        "/api/citations/format",
+        "/api/citations/verify",
+        "/api/citations/checks",
+        "/api/workflow/gate",
+        "api.download",
+        "window.confirm",
+        "gbt7714",
+    ):
+        assert marker in delivery, marker
+    html = _project_html(client, project)
+    assert 'value="apa"' in html
+    assert 'data-panel="delivery"' in html
+
+
+def test_style_baseline_wiring(client):
+    style = client.get("/static/js/style.js").text
+    assert "/api/style/baseline" in style
+    assert "baseline: baseline || undefined" in style
+    assert "style-baseline-input" in style
+    assert "style-baseline-summary" in style
+
+
+def test_document_title_can_be_renamed(client, project):
+    html = _project_html(client, project)
+    tag = re.search(r'<input id="document-title"[^>]*>', html)
+    assert tag is not None
+    assert "readonly" not in tag.group(0)
+    workspace = client.get("/static/js/workspace.js").text
+    assert "renameDocument" in workspace
+    assert 'api.patch("/api/documents/' in workspace
+    assert "文档标题已保存" in workspace

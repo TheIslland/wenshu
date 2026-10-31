@@ -40,6 +40,7 @@
     <button class="tab" data-tab="methods" id="tab-methods" role="tab" aria-selected="false" aria-controls="panel-methods">方法</button>
     <button class="tab" data-tab="direction" id="tab-direction" role="tab" aria-selected="false" aria-controls="panel-direction">方向</button>
     <button class="tab" data-tab="workflow" id="tab-workflow" role="tab" aria-selected="false" aria-controls="panel-workflow">流程</button>
+    <button class="tab" data-tab="delivery" id="tab-delivery" role="tab" aria-selected="false" aria-controls="panel-delivery">交付</button>
   </nav>
 
   <section class="tab-panel active" data-panel="overview" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
@@ -86,7 +87,7 @@
       </aside>
       <div class="panel editor-panel">
         <div class="editor-toolbar">
-          <input id="document-title" class="title-input" aria-label="文档标题" placeholder="文档标题" readonly title="标题在新建文档时设置">
+          <input id="document-title" class="title-input" aria-label="文档标题" placeholder="文档标题" title="回车或失焦保存标题">
           <span id="word-count" class="muted">0 字</span>
           <span id="autosave-state" class="autosave">—</span>
           <button class="btn ghost" id="save-document" type="button">保存</button>
@@ -132,7 +133,7 @@
             <option value="review">综述</option>
           </select>
         </label>
-        <p class="hint">标题暂时只能在新建时设置（后端未开放重命名接口）。</p>
+        <p class="hint">标题创建后可在写作页直接改：回车或点别处即保存，不会改版本号。</p>
         <div class="dialog-actions">
           <button class="btn ghost" type="button" data-close-dialog>取消</button>
           <button class="btn primary" type="submit">创建</button>
@@ -259,6 +260,18 @@
       </label>
       <textarea id="style-input" class="editor short" placeholder="粘贴或选中一段要体检的文字。留空则体检当前文档。"></textarea>
       <p class="hint" id="llm-hint-style"></p>
+      <details class="baseline-box" id="baseline-box">
+        <summary>个人基线（可选 · 3–5 篇本人已发表/认可的文本）</summary>
+        <p class="hint">建立基线后，风险分改用你的均值 / 方差做 z-score，减少学科误报。基线只存在当前页面内存，不上传。</p>
+        <textarea id="style-baseline-input" class="editor short"
+          placeholder="每段贴一篇文本，段与段之间空一行。建议 3–5 篇，越长越稳。"></textarea>
+        <div class="toolbar">
+          <button class="btn" id="style-baseline-build" type="button">建立基线</button>
+          <button class="btn ghost" id="style-baseline-clear" type="button">清除基线</button>
+          <span class="muted" id="style-baseline-status">未建立基线，使用默认阈值。</span>
+        </div>
+        <div id="style-baseline-summary"></div>
+      </details>
       <div id="style-report" class="report">
         <div class="empty">
           <p>还没有体检结果。</p>
@@ -389,6 +402,69 @@
       </div>
     </div>
   </section>
+
+  <section class="tab-panel" data-panel="delivery" id="panel-delivery" role="tabpanel" aria-labelledby="tab-delivery">
+    <div class="panel">
+      <div class="section-head">
+        <h2>导出</h2>
+        <span class="muted" id="export-status">未导出。</span>
+      </div>
+      <p class="hint">导出前会检查门禁：有未核引 / 高风险段 / 未解决 gaps 时先确认，不硬拦。</p>
+      <div class="toolbar export-actions">
+        <button class="btn primary" id="export-markdown" type="button">Markdown (.md)</button>
+        <button class="btn" id="export-docx" type="button">DOCX (.docx)</button>
+        <button class="btn" id="export-bibtex" type="button">BibTeX (.bib)</button>
+        <button class="btn" id="export-ris" type="button">RIS (.ris)</button>
+        <span class="spacer"></span>
+        <select id="export-style" aria-label="导出参考文献样式">
+          <option value="gbt7714">GB/T 7714-2015</option>
+          <option value="apa">APA 7</option>
+        </select>
+      </div>
+      <div id="delivery-gate" class="delivery-gate" aria-live="polite">
+        <div class="loading"><span class="spinner" aria-hidden="true"></span>正在检查门禁…</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" id="delivery-gate-refresh" type="button">刷新门禁</button>
+        <span class="muted">门禁不阻止导出，只把风险摆在你面前。</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <h2>引用格式预览</h2>
+        <span class="muted" id="citation-meta"></span>
+      </div>
+      <div class="toolbar">
+        <select id="citation-style" aria-label="引用预览样式">
+          <option value="gbt7714">GB/T 7714-2015</option>
+          <option value="apa">APA 7</option>
+        </select>
+        <button class="btn primary" id="citation-preview" type="button">生成预览</button>
+        <span class="muted">只用本地库文献；渲染失败会回退内置 GB/T 并提示。</span>
+      </div>
+      <pre id="citation-text" class="citation-preview">还没有预览。点「生成预览」。</pre>
+      <div id="citation-warnings"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <h2>引用核验</h2>
+        <span class="muted" id="citation-counts">还没有核引记录。</span>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="citation-verify" type="button">批量核引</button>
+        <button class="btn ghost" id="citation-refresh-checks" type="button">刷新结果</button>
+        <span class="muted">用 DOI 查 Crossref / OpenAlex；无 DOI 标「无 DOI」，不会静默通过。</span>
+      </div>
+      <div id="citation-checks" class="table-wrap" aria-live="polite">
+        <div class="empty">
+          <p>还没有核引记录。</p>
+          <p class="muted">核引会逐条查 DOI，并把状态写回本地库。</p>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <dialog id="project-dialog" class="dialog">
@@ -423,5 +499,6 @@
 <script src="{{ url_for('static', path='js/methods.js') }}"></script>
 <script src="{{ url_for('static', path='js/direction.js') }}"></script>
 <script src="{{ url_for('static', path='js/workflow.js') }}"></script>
+<script src="{{ url_for('static', path='js/delivery.js') }}"></script>
 <script src="{{ url_for('static', path='js/workspace.js') }}"></script>
 {% endblock %}

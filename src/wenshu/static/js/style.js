@@ -56,6 +56,7 @@
   let lastFixFindings = [];
   let lastRewrite = null;
   let busy = false;
+  let baseline = null;
 
   const $ = (selector) => (panelEl ? panelEl.querySelector(selector) : null);
 
@@ -74,6 +75,89 @@
       analyzeText.addEventListener("click", () => analyze(false));
     }
     if (reportEl) reportEl.addEventListener("click", onReportClick);
+    const build = $("#style-baseline-build");
+    if (build) build.addEventListener("click", buildBaseline);
+    const clear = $("#style-baseline-clear");
+    if (clear) clear.addEventListener("click", clearBaseline);
+  }
+
+  function baselineTexts() {
+    const input = $("#style-baseline-input");
+    if (!input) return [];
+    return String(input.value || "")
+      .split(/\n\s*\n/)
+      .map((text) => text.trim())
+      .filter(Boolean);
+  }
+
+  function baselineStatus(text, kind) {
+    const node = $("#style-baseline-status");
+    if (node) {
+      node.textContent = text;
+      node.dataset.state = kind || "";
+    }
+  }
+
+  async function buildBaseline() {
+    const texts = baselineTexts();
+    if (!texts.length) {
+      toast("先贴 3–5 篇本人文本，段与段之间空一行。", "error");
+      return;
+    }
+    const button = $("#style-baseline-build");
+    const summary = $("#style-baseline-summary");
+    if (button) button.disabled = true;
+    baselineStatus("正在建立基线…", "loading");
+    if (summary) W.loading(summary, "正在计算均值与方差…");
+    try {
+      const data = await api.post("/api/style/baseline", { texts });
+      baseline = data;
+      renderBaseline(data);
+      toast("个人基线已建立：使用 " + (data.samples || texts.length) + " 篇样本。", "ok");
+    } catch (error) {
+      baseline = null;
+      baselineStatus("基线未建立，继续使用默认阈值。", "error");
+      if (summary) W.showError(summary, error, { retry: buildBaseline });
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function renderBaseline(data) {
+    const summary = $("#style-baseline-summary");
+    const metrics = (data && data.metrics) || {};
+    const rows = Object.entries(metrics)
+      .filter(([key]) => METRIC_LABELS[key])
+      .slice(0, 10)
+      .map(([key, stats]) => {
+        const mean = Number(stats && stats.mean);
+        const display = Number.isFinite(mean) ? mean.toFixed(2) : "—";
+        return (
+          '<span class="baseline-metric">' + esc(METRIC_LABELS[key]) + " <b>" + display + "</b></span>"
+        );
+      })
+      .join("");
+    baselineStatus(
+      "已建立基线：" +
+        (data.samples || 0) +
+        " 篇 · " +
+        Object.keys(metrics).length +
+        " 项指标 · 下次体检自动带上",
+      "ok"
+    );
+    if (summary) {
+      summary.innerHTML =
+        '<div class="baseline-summary">' + (rows || '<span class="muted">指标为空。</span>') + "</div>" +
+        W.warningsHtml(data.warnings);
+    }
+  }
+
+  function clearBaseline() {
+    baseline = null;
+    const summary = $("#style-baseline-summary");
+    if (summary) summary.innerHTML = "";
+    baselineStatus("未建立基线，使用默认阈值。", "");
+    toast("已清除个人基线。", "ok");
   }
 
   function useLlm() {
@@ -149,6 +233,7 @@
         text: source.text,
         project_id: W.projectId,
         use_llm: useLlm(),
+        baseline: baseline || undefined,
       });
       renderReport(data || {});
     } catch (error) {

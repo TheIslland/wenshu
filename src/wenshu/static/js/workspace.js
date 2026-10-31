@@ -597,6 +597,7 @@
     timer: null,
     paragraphTimer: null,
     bound: false,
+    renaming: false,
   };
 
   function wordCountOf(text) {
@@ -704,6 +705,42 @@
     const index = state.documents.findIndex((item) => item.id === doc.id);
     if (index >= 0) state.documents[index] = doc;
     renderDocuments();
+  }
+
+  async function renameDocument(input) {
+    const current = state.current;
+    if (!current || !input || writing.renaming) return;
+    const next = String(input.value || "").trim();
+    if (!next) {
+      input.value = current.title || "";
+      toast("文档标题不能为空。", "error");
+      return;
+    }
+    if (next === current.title) {
+      input.value = current.title || "";
+      return;
+    }
+    writing.renaming = true;
+    input.disabled = true;
+    try {
+      const saved = await api.patch("/api/documents/" + current.id, { title: next });
+      state.current.title = (saved && saved.title) || next;
+      state.current.updated_at = (saved && saved.updated_at) || current.updated_at;
+      const index = state.documents.findIndex((item) => item.id === current.id);
+      if (index >= 0) {
+        state.documents[index].title = state.current.title;
+        state.documents[index].updated_at = state.current.updated_at;
+      }
+      input.value = state.current.title;
+      renderDocuments();
+      toast("文档标题已保存。", "ok");
+    } catch (error) {
+      input.value = state.current.title || "";
+      toast(error.message, "error");
+    } finally {
+      writing.renaming = false;
+      input.disabled = false;
+    }
   }
 
   async function saveNow(options = {}) {
@@ -1013,6 +1050,19 @@
 
     const saveButton = panel.querySelector("#save-document");
     if (saveButton) saveButton.addEventListener("click", () => saveNow());
+    const titleInput = panel.querySelector("#document-title");
+    if (titleInput) {
+      titleInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          titleInput.blur();
+        } else if (event.key === "Escape") {
+          titleInput.value = state.current ? state.current.title || "" : "";
+          titleInput.blur();
+        }
+      });
+      titleInput.addEventListener("blur", () => renameDocument(titleInput));
+    }
     const snapshotButton = panel.querySelector("#snapshot-document");
     if (snapshotButton) snapshotButton.addEventListener("click", () => snapshotDocument("手动快照"));
     const newDocButton = panel.querySelector("#new-document");

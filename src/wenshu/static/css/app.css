@@ -414,6 +414,54 @@ td.num { font-family: var(--mono); font-size: 12.5px; color: var(--muted); white
 .module-card p { color: var(--ink-soft); font-size: 13px; margin: 0 0 8px; }
 .module-card .btn { margin-top: 2px; }
 
+/* ---------- 交付：导出 / 门禁 / 引用预览 / 核引 ---------- */
+.delivery-gate { margin: 12px 0; }
+.delivery-gate .banner { margin: 0 0 10px; }
+.delivery-gate .gate-list { margin: 6px 0 0; padding-left: 20px; color: var(--ink-soft); font-size: 12.5px; }
+.delivery-gate .gate-list li { margin: 3px 0; }
+.gate-ok {
+  border-left: 3px solid var(--ok); background: var(--ok-soft); color: var(--ink-soft);
+  border-radius: 0 8px 8px 0; padding: 10px 13px; font-size: 13px;
+}
+.gate-ok strong { color: var(--ok); }
+.export-actions .btn { min-width: 118px; }
+.citation-preview {
+  margin: 0; min-height: 58px; max-height: 340px; overflow: auto;
+  font-family: var(--serif); font-size: 14px; line-height: 1.9; white-space: pre-wrap;
+  word-break: break-word; background: #fff; border: 1px solid var(--line);
+  border-radius: 8px; padding: 14px 16px;
+}
+.checks-table .check-status {
+  display: inline-block; border: 1px solid currentColor; border-radius: 999px;
+  padding: 1px 8px; font-size: 11px; font-family: var(--mono); white-space: nowrap;
+}
+.check-status.ok { color: var(--ok); background: var(--ok-soft); }
+.check-status.warn { color: var(--warn); background: var(--warn-soft); }
+.check-status.danger { color: var(--danger); background: var(--danger-soft); }
+.check-status.muted { color: var(--muted); background: var(--surface-2); }
+
+/* ---------- 个人基线 ---------- */
+.baseline-box {
+  margin: 14px 0 18px; border: 1px dashed var(--line-strong);
+  border-radius: 8px; background: var(--surface-2); padding: 10px 14px;
+}
+.baseline-box summary { cursor: pointer; color: var(--ink-soft); font-size: 13px; }
+.baseline-box[open] summary { margin-bottom: 8px; }
+.baseline-box .editor { min-height: 130px; background: var(--surface); }
+.baseline-summary { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 4px; }
+.baseline-metric {
+  font-size: 11.5px; color: var(--muted); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px;
+}
+.baseline-metric b { color: var(--accent-ink); font-family: var(--mono); }
+#style-baseline-status[data-state="ok"] { color: var(--ok); }
+#style-baseline-status[data-state="error"] { color: var(--danger); }
+
+/* ---------- 文档标题可编辑 ---------- */
+.title-input:hover { border-bottom: 1px dashed var(--line-strong); }
+.title-input:disabled { opacity: .6; cursor: progress; }
+.title-input::placeholder { color: var(--muted); }
+
 /* ---------- 弹窗与响应式 ---------- */
 #import-dialog { width: min(640px, 94vw); }
 #import-payload { min-height: 180px; font-family: var(--mono); font-size: 12.5px; }
@@ -442,4 +490,6 @@ td.num { font-family: var(--mono); font-size: 12.5px; color: var(--muted); white
   .filter-row input[type="number"] { width: 100%; }
   .toolbar input:not([type]), .toolbar input[type="search"], .toolbar select { min-width: 0; width: 100%; }
   .banner { flex-direction: column; align-items: flex-start; }
+  .export-actions .btn { min-width: 0; flex: 1 1 44%; }
+  .citation-preview { max-height: 260px; }
 }

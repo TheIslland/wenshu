@@ -323,6 +323,16 @@ def explore(
         raise ValidationFailed("请先填写研究主题/关键词。")
     warnings: list[str] = []
     refs = _query_refs(con, topic, project_id, years, language)
+    if project_id is not None and topic and not refs:
+        # A project's name rarely appears verbatim in its own references. Falling
+        # back to the whole project library keeps the cards evidence-based instead
+        # of producing an empty "待检索" board.
+        fallback = _query_refs(con, "", project_id, years, language)
+        if fallback:
+            refs = fallback
+            warnings.append(
+                f"本地库没有直接匹配「{topic}」的文献，已改用项目全部 {len(refs)} 篇作为证据。"
+            )
     stats = _stats(refs, topic, project_id)
 
     cards = _llm_cards(topic, refs, llm, warnings) if llm is not None else None

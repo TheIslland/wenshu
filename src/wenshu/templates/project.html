@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ project.name }} · 文枢{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+{% endblock %}
 {% block content %}
 <div id="workspace" data-project-id="{{ project.id }}"
      data-project-name="{{ project.name }}" data-demo="{{ '1' if demo else '0' }}">
@@ -8,186 +11,417 @@
     <div>
       <p class="eyebrow">{{ project.field or '研究项目' }}</p>
       <h1>{{ project.name }}</h1>
-      <p class="lede">{{ project.question or '还没有写研究问题。' }}</p>
+      <p class="lede">{{ project.question or '还没有写研究问题。打开「项目设置」补一句。' }}</p>
     </div>
     <div class="workspace-meta">
-      <span>{{ documents|length }} 篇文档</span>
-      <span>{{ ref_count }} 本文献</span>
-      <button class="btn ghost" id="workspace-settings">项目设置</button>
+      <span class="meta-item" id="meta-docs">{{ documents|length }} 篇文档</span>
+      <span class="meta-item" id="meta-refs">{{ ref_count }} 本文献</span>
+      <button class="btn ghost" id="workspace-settings" type="button">项目设置</button>
     </div>
   </header>
 
+  <div class="workspace-status" id="workspace-status" aria-live="polite">
+    <span class="status-item" id="llm-box">
+      <span class="status-dot" id="llm-dot" aria-hidden="true"></span>
+      <span id="llm-status">正在检查模型配置…</span>
+    </span>
+    <span class="status-item" id="save-status">尚未打开文档</span>
+    <span class="status-item muted" id="health-detail"></span>
+  </div>
+
   <nav class="tabs" role="tablist" aria-label="工作区">
-    <button class="tab active" data-tab="overview" role="tab">概览</button>
-    <button class="tab" data-tab="writing" role="tab">写作</button>
-    <button class="tab" data-tab="library" role="tab">文献</button>
-    <button class="tab" data-tab="search" role="tab">检索</button>
-    <button class="tab" data-tab="style" role="tab">体检</button>
-    <button class="tab" data-tab="polish" role="tab">润色</button>
-    <button class="tab" data-tab="paragraphs" role="tab">调段</button>
-    <button class="tab" data-tab="methods" role="tab">方法</button>
-    <button class="tab" data-tab="direction" role="tab">方向</button>
-    <button class="tab" data-tab="workflow" role="tab">流程</button>
+    <button class="tab active" data-tab="overview" id="tab-overview" role="tab" aria-selected="true" aria-controls="panel-overview">概览</button>
+    <button class="tab" data-tab="writing" id="tab-writing" role="tab" aria-selected="false" aria-controls="panel-writing">写作</button>
+    <button class="tab" data-tab="library" id="tab-library" role="tab" aria-selected="false" aria-controls="panel-library">文献</button>
+    <button class="tab" data-tab="search" id="tab-search" role="tab" aria-selected="false" aria-controls="panel-search">检索</button>
+    <button class="tab" data-tab="style" id="tab-style" role="tab" aria-selected="false" aria-controls="panel-style">体检</button>
+    <button class="tab" data-tab="polish" id="tab-polish" role="tab" aria-selected="false" aria-controls="panel-polish">润色</button>
+    <button class="tab" data-tab="paragraphs" id="tab-paragraphs" role="tab" aria-selected="false" aria-controls="panel-paragraphs">调段</button>
+    <button class="tab" data-tab="methods" id="tab-methods" role="tab" aria-selected="false" aria-controls="panel-methods">方法</button>
+    <button class="tab" data-tab="direction" id="tab-direction" role="tab" aria-selected="false" aria-controls="panel-direction">方向</button>
+    <button class="tab" data-tab="workflow" id="tab-workflow" role="tab" aria-selected="false" aria-controls="panel-workflow">流程</button>
   </nav>
 
-  <section class="tab-panel active" data-panel="overview">
+  <section class="tab-panel active" data-panel="overview" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
     <div class="panel-grid">
       <article class="panel">
         <h2>从哪开始</h2>
         <ol class="steps">
           <li><button class="link" data-goto="direction">先看研究方向</button>，把问题缩到能回答的尺寸。</li>
-          <li><button class="link" data-goto="search">检索文献</button>，或从 Zotero / RIS / BibTeX 导入。</li>
+          <li><button class="link" data-goto="search">检索文献</button>，或从 Zotero / RIS / BibTeX / DOI 导入。</li>
           <li><button class="link" data-goto="writing">开始写</button>，逐段体检、润色、调段。</li>
           <li><button class="link" data-goto="methods">做方法矩阵</button>，核引后导出。</li>
         </ol>
+        <p class="hint">没有配置 LLM 也能用：文献库、规则体检、导出都不依赖模型。</p>
       </article>
       <article class="panel">
         <h2>项目状态</h2>
         <dl class="stat-list">
-          <div><dt>文档</dt><dd>{{ documents|length }}</dd></div>
-          <div><dt>文献</dt><dd>{{ ref_count }}</dd></div>
-          <div><dt>研究问题</dt><dd>{{ '已写' if project.question else '待补' }}</dd></div>
+          <div><dt>文档</dt><dd id="stat-documents">{{ documents|length }}</dd></div>
+          <div><dt>文献</dt><dd id="stat-refs">{{ ref_count }}</dd></div>
+          <div><dt>研究问题</dt><dd id="stat-question">{{ '已写' if project.question else '待补' }}</dd></div>
+          <div><dt>模型</dt><dd id="stat-llm">检查中</dd></div>
         </dl>
       </article>
     </div>
+    <article class="panel disclaimer-panel">
+      <h2>边界</h2>
+      <p class="muted">风格体检面向写作质量，标「风格风险」，不针对任何检测系统，也不承诺降低 AI 率。改写只给建议，接受与否由作者决定；引用必须逐条核。</p>
+    </article>
   </section>
 
-  <section class="tab-panel" data-panel="writing">
-    <div class="split">
+  <section class="tab-panel" data-panel="writing" id="panel-writing" role="tabpanel" aria-labelledby="tab-writing">
+    <div class="split writing-split">
       <aside class="panel side">
-        <h2>文档</h2>
+        <div class="side-head">
+          <h2>文档</h2>
+          <span class="muted" id="document-count"></span>
+        </div>
         <div id="document-list" class="doc-list"></div>
-        <button class="btn ghost block" id="new-document">新建文档</button>
+        <button class="btn ghost block" id="new-document" type="button">新建文档</button>
+        <details class="side-details" id="snapshot-box">
+          <summary>最近快照</summary>
+          <div id="snapshot-list" class="snapshot-list"><p class="muted">打开文档后显示。</p></div>
+        </details>
       </aside>
       <div class="panel editor-panel">
         <div class="editor-toolbar">
-          <input id="document-title" class="title-input" aria-label="文档标题" placeholder="文档标题">
+          <input id="document-title" class="title-input" aria-label="文档标题" placeholder="文档标题" readonly title="标题在新建文档时设置">
           <span id="word-count" class="muted">0 字</span>
-          <button class="btn ghost" id="save-document">保存</button>
-          <button class="btn ghost" id="snapshot-document">快照</button>
+          <span id="autosave-state" class="autosave">—</span>
+          <button class="btn ghost" id="save-document" type="button">保存</button>
+          <button class="btn ghost" id="snapshot-document" type="button">快照</button>
+        </div>
+        <div id="conflict-banner" class="banner warn hidden" role="alert">
+          <div>
+            <strong>版本冲突：</strong><span id="conflict-message">文档已被其他窗口修改，请刷新。</span>
+          </div>
+          <div class="banner-actions">
+            <button class="btn mini" id="conflict-reload" type="button">载入最新（放弃本地修改）</button>
+            <button class="btn mini danger" id="conflict-force" type="button">保留本地并覆盖</button>
+          </div>
+        </div>
+        <div class="editor-tools">
+          <span class="muted">选中文字后：</span>
+          <button class="btn mini" data-para-action="style" type="button">体检</button>
+          <button class="btn mini" data-para-action="polish" type="button">润色</button>
+          <button class="btn mini" data-para-action="paragraphs" type="button">调段</button>
+          <span class="muted">未选中则用光标所在段落</span>
         </div>
         <textarea id="editor" class="editor" spellcheck="false"
           placeholder="从大纲开始，或者直接写第一段。Markdown：## 二级标题，[@key] 插引用。"></textarea>
-        <p class="hint">自动保存：停笔 1.5 秒。段落级操作在「体检 / 润色 / 调段」里。</p>
+        <p class="hint">自动保存：停笔 1.5 秒。保存冲突会停止自动保存，先载入最新或确认覆盖。</p>
+        <details class="paragraph-box" id="paragraph-box">
+          <summary>段落卡片（点击段落可单独体检 / 润色 / 调段）</summary>
+          <div id="paragraph-cards" class="paragraph-cards"></div>
+        </details>
       </div>
     </div>
+
+    <dialog id="new-document-dialog" class="dialog">
+      <form id="new-document-form" class="form">
+        <h2>新建文档</h2>
+        <label>标题
+          <input name="title" maxlength="300" required value="未命名文档">
+        </label>
+        <label>类型
+          <select name="kind">
+            <option value="paper">论文</option>
+            <option value="notes">笔记</option>
+            <option value="outline">大纲</option>
+            <option value="review">综述</option>
+          </select>
+        </label>
+        <p class="hint">标题暂时只能在新建时设置（后端未开放重命名接口）。</p>
+        <div class="dialog-actions">
+          <button class="btn ghost" type="button" data-close-dialog>取消</button>
+          <button class="btn primary" type="submit">创建</button>
+        </div>
+      </form>
+    </dialog>
   </section>
 
-  <section class="tab-panel" data-panel="library">
+  <section class="tab-panel" data-panel="library" id="panel-library" role="tabpanel" aria-labelledby="tab-library">
     <div class="panel">
       <div class="toolbar">
-        <input id="ref-search" type="search" placeholder="搜标题、作者、摘要、全文">
-        <select id="ref-status">
+        <input id="ref-search" type="search" placeholder="搜标题、作者、摘要、全文" aria-label="搜索文献">
+        <select id="ref-status" aria-label="按状态筛选">
           <option value="">全部状态</option>
           <option value="inbox">收件箱</option>
           <option value="reading">在读</option>
           <option value="read">已读</option>
           <option value="cited">已引</option>
         </select>
-        <button class="btn ghost" id="import-refs">导入 RIS / BibTeX / DOI</button>
-        <button class="btn ghost" id="zotero-import">从 Zotero 导入</button>
+        <button class="btn ghost" id="import-refs" type="button">导入 RIS / BibTeX / DOI</button>
+        <button class="btn ghost" id="zotero-import" type="button">从 Zotero 导入</button>
+        <span class="spacer"></span>
+        <span class="muted" id="ref-summary">正在加载…</span>
       </div>
-      <div id="ref-table" class="table-wrap"></div>
+      <div id="ref-table" class="table-wrap" aria-live="polite">
+        <div class="loading"><span class="spinner" aria-hidden="true"></span>正在加载文献库…</div>
+      </div>
+      <input type="file" id="pdf-input" class="hidden" accept=".pdf,application/pdf">
     </div>
+
+    <dialog id="import-dialog" class="dialog">
+      <form id="import-form" class="form">
+        <h2>导入文献</h2>
+        <label>格式
+          <select id="import-kind">
+            <option value="ris">RIS 文件内容</option>
+            <option value="bibtex">BibTeX 文本</option>
+            <option value="doi">DOI</option>
+            <option value="pdf">PDF 文件（抽元数据与全文）</option>
+          </select>
+        </label>
+        <label id="import-payload-wrap">粘贴内容
+          <textarea id="import-payload" rows="9" placeholder="把 RIS / BibTeX 内容整段贴进来。"></textarea>
+        </label>
+        <label id="import-doi-wrap" class="hidden">DOI
+          <input id="import-doi" placeholder="10.xxxx/xxxxx">
+        </label>
+        <label id="import-file-wrap" class="hidden">PDF 文件
+          <input id="import-file" type="file" accept=".pdf,application/pdf">
+        </label>
+        <p class="hint">导入只保存元数据。PDF 会存到本地附件目录并抽取全文；Zotero 需要本机 Zotero 7 开启本地 API。</p>
+        <div class="dialog-actions">
+          <button class="btn ghost" type="button" data-close-dialog>取消</button>
+          <button class="btn primary" id="import-submit" type="submit">导入</button>
+        </div>
+      </form>
+    </dialog>
   </section>
 
-  <section class="tab-panel" data-panel="search">
+  <section class="tab-panel" data-panel="search" id="panel-search" role="tabpanel" aria-labelledby="tab-search">
     <div class="panel">
       <form id="search-form" class="search-form">
-        <input name="query" type="search" placeholder="关键词 / 作者 / 篇名（中英文均可）" required>
+        <input name="query" id="search-query" type="search" placeholder="关键词 / 作者 / 篇名（中英文均可）" required>
         <button class="btn primary" type="submit">检索</button>
       </form>
-      <div class="chips" id="source-chips">
+      <div class="chips" id="source-chips" aria-label="检索源">
         <label><input type="checkbox" value="openalex" checked> OpenAlex</label>
         <label><input type="checkbox" value="crossref" checked> Crossref</label>
         <label><input type="checkbox" value="semantic_scholar"> Semantic Scholar</label>
         <label><input type="checkbox" value="arxiv"> arXiv</label>
       </div>
-      <div id="search-results" class="results"></div>
+      <div class="filter-row">
+        <label>起始年 <input type="number" id="search-year-from" min="1900" max="2100" inputmode="numeric"></label>
+        <label>截止年 <input type="number" id="search-year-to" min="1900" max="2100" inputmode="numeric"></label>
+        <label>语言
+          <select id="search-language">
+            <option value="">不限</option>
+            <option value="zh">中文</option>
+            <option value="en">英文</option>
+            <option value="ja">日文</option>
+          </select>
+        </label>
+        <label>条数
+          <select id="search-limit">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+      </div>
+      <div class="toolbar search-actions hidden" id="search-actions">
+        <span class="muted" id="search-summary"></span>
+        <label class="check-inline"><input type="checkbox" id="search-select-all"> 全选</label>
+        <button class="btn" id="import-all-hits" type="button" disabled>入库选中</button>
+        <button class="btn ghost" id="import-every-hit" type="button">全部入库</button>
+      </div>
+      <div id="source-errors" class="source-errors"></div>
+      <div id="search-results" class="results">
+        <div class="empty">
+          <p>输入关键词，从 OpenAlex / Crossref 等公开源检索。</p>
+          <p class="muted">只收录检索结果里的文献；找不到就手动导入，不生成。</p>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="tab-panel" data-panel="style">
+  <section class="tab-panel" data-panel="style" id="panel-style" role="tabpanel" aria-labelledby="tab-style">
     <div class="panel">
       <div class="toolbar">
-        <button class="btn primary" id="analyze-document">体检当前文档</button>
-        <span class="muted">规则检测，标「风格风险」而非 AI 概率</span>
+        <button class="btn primary" id="analyze-document" type="button">体检当前文档</button>
+        <button class="btn ghost" id="analyze-text" type="button">体检下方文本</button>
+        <label class="check-inline"><input type="checkbox" id="style-use-llm"> 启用 LLM 复审</label>
+        <select id="style-mode" aria-label="改写模式">
+          <option value="safe">安全修正</option>
+          <option value="academic" selected>学术化</option>
+          <option value="concise">简洁</option>
+          <option value="cohesive">衔接</option>
+          <option value="concrete">具体化</option>
+        </select>
+        <span class="muted">规则检测；标「风格风险」而非 AI 概率</span>
       </div>
+      <label class="field-label" for="style-input">体检目标
+        <span class="muted" id="style-target-hint">默认使用当前文档；也可选中段落后从写作页带入。</span>
+      </label>
+      <textarea id="style-input" class="editor short" placeholder="粘贴或选中一段要体检的文字。留空则体检当前文档。"></textarea>
+      <p class="hint" id="llm-hint-style"></p>
       <div id="style-report" class="report">
-        <div class="empty"><p>还没有体检结果。</p></div>
+        <div class="empty">
+          <p>还没有体检结果。</p>
+          <p class="muted">规则引擎离线可跑；LLM 复审需要先在设置里配置模型。</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="tab-panel" data-panel="polish">
+  <section class="tab-panel" data-panel="polish" id="panel-polish" role="tabpanel" aria-labelledby="tab-polish">
     <div class="panel">
       <div class="toolbar">
-        <select id="polish-mode">
+        <select id="polish-mode" aria-label="润色模式">
           <option value="academic">学术化</option>
           <option value="concise">简洁</option>
           <option value="cohesive">衔接</option>
           <option value="concrete">具体化</option>
         </select>
-        <button class="btn primary" id="polish-run">润色选中 / 末段</button>
+        <button class="btn primary" id="polish-run" type="button">润色</button>
+        <button class="btn ghost" id="polish-load-selection" type="button">取当前段落</button>
+        <span class="spacer"></span>
+        <span class="muted">不动引用 / 数字 / 术语；字数 ±15%</span>
       </div>
-      <textarea id="polish-input" class="editor short" placeholder="贴一段要润色的文字，或在写作页选中段落。"></textarea>
+      <textarea id="polish-input" class="editor short" placeholder="贴一段要润色的文字，或在写作页选中段落后点「润色」。"></textarea>
+      <p class="hint" id="llm-hint-polish"></p>
       <div id="polish-result" class="rewrite-result"></div>
     </div>
   </section>
 
-  <section class="tab-panel" data-panel="paragraphs">
+  <section class="tab-panel" data-panel="paragraphs" id="panel-paragraphs" role="tabpanel" aria-labelledby="tab-paragraphs">
     <div class="panel">
       <div class="toolbar">
-        <select id="paragraph-op">
+        <select id="paragraph-op" aria-label="调段操作">
           <option value="compress">压缩</option>
           <option value="expand">扩写</option>
           <option value="reorder">重排</option>
           <option value="argument">补论证</option>
         </select>
-        <button class="btn primary" id="paragraph-run">调整</button>
+        <select id="paragraph-role" aria-label="章节角色">
+          <option value="analysis">分析</option>
+          <option value="review">综述</option>
+          <option value="theory">理论</option>
+          <option value="case">个案</option>
+          <option value="conclusion">结论</option>
+        </select>
+        <button class="btn primary" id="paragraph-run" type="button">调整</button>
+        <button class="btn ghost" id="paragraph-load-selection" type="button">取当前段落</button>
+        <span class="spacer"></span>
+        <span class="muted">缺证据进 gaps，不补原文之外的事实</span>
       </div>
       <textarea id="paragraph-input" class="editor short" placeholder="贴一个段落。扩写与补论证只补证据/解释，缺材料会进 gaps。"></textarea>
+      <p class="hint" id="llm-hint-paragraphs"></p>
       <div id="paragraph-result" class="rewrite-result"></div>
     </div>
   </section>
 
-  <section class="tab-panel" data-panel="methods">
+  <section class="tab-panel" data-panel="methods" id="panel-methods" role="tabpanel" aria-labelledby="tab-methods">
     <div class="panel">
       <div class="toolbar">
-        <button class="btn primary" id="extract-methods">从文献抽取方法</button>
-        <span class="muted">矩阵可编辑；无证据的字段标「未抽取」</span>
+        <button class="btn primary" id="extract-methods" type="button">从文献抽取方法</button>
+        <button class="btn ghost" id="refresh-methods" type="button">刷新矩阵</button>
+        <button class="btn ghost" id="export-methods" type="button">导出 CSV</button>
+        <span class="spacer"></span>
+        <span class="muted" id="method-summary">正在加载…</span>
       </div>
-      <div id="method-matrix" class="table-wrap"></div>
-      <div id="method-trend" class="chart"></div>
+      <p class="hint">矩阵可编辑，失焦保存；无证据的字段标「未抽取」，不代填。</p>
+      <div id="method-conflicts" class="conflicts"></div>
+      <div id="method-matrix" class="table-wrap">
+        <div class="loading"><span class="spinner" aria-hidden="true"></span>正在加载方法矩阵…</div>
+      </div>
+      <div id="method-trend" class="chart" aria-label="年份分布"></div>
     </div>
   </section>
 
-  <section class="tab-panel" data-panel="direction">
+  <section class="tab-panel" data-panel="direction" id="panel-direction" role="tabpanel" aria-labelledby="tab-direction">
     <div class="panel">
       <div class="toolbar">
-        <input id="direction-topic" placeholder="领域 / 现象 / 理论关键词" value="{{ project.name }}">
-        <button class="btn primary" id="direction-run">找方向</button>
+        <input id="direction-topic" placeholder="领域 / 现象 / 理论关键词" value="{{ project.name }}" aria-label="研究方向关键词">
+        <input id="direction-years" type="number" min="1" max="30" value="10" aria-label="统计年数">
+        <select id="direction-language" aria-label="语种">
+          <option value="">不限语种</option>
+          <option value="zh">中文</option>
+          <option value="en">英文</option>
+        </select>
+        <button class="btn primary" id="direction-run" type="button">找方向</button>
+        <span class="spacer"></span>
+        <span class="muted" id="direction-meta"></span>
       </div>
-      <div id="direction-cards" class="cards"></div>
+      <p class="hint">支撑文献只能来自本次检索或本地库；没有就写「待检索」。无 LLM 时给内置问题模板。</p>
+      <div id="direction-stats" class="direction-stats"></div>
+      <div id="direction-cards" class="cards">
+        <div class="empty"><p>还没有问题卡。</p><p class="muted">输入关键词后点「找方向」。</p></div>
+      </div>
     </div>
   </section>
 
-  <section class="tab-panel" data-panel="workflow">
+  <section class="tab-panel" data-panel="workflow" id="panel-workflow" role="tabpanel" aria-labelledby="tab-workflow">
     <div class="panel">
       <div class="toolbar">
-        <select id="workflow-template">
+        <select id="workflow-template" aria-label="流程模板">
           <option value="proposal">开题</option>
           <option value="paper">论文</option>
           <option value="submission">投稿</option>
         </select>
-        <button class="btn ghost" id="apply-template">套用模板</button>
-        <span id="gate-status" class="muted"></span>
+        <button class="btn primary" id="apply-template" type="button">套用模板</button>
+        <button class="btn ghost" id="add-task" type="button">新建任务</button>
+        <button class="btn ghost" id="refresh-tasks" type="button">刷新</button>
+        <span class="spacer"></span>
+        <span id="gate-status" class="gate-status muted">门禁检查中…</span>
       </div>
-      <div id="kanban" class="kanban"></div>
+      <div id="task-add-form" class="inline-form hidden">
+        <input id="task-title" placeholder="任务标题，例如：核完 19 条 DOI" maxlength="200">
+        <select id="task-stage" aria-label="阶段">
+          <option value="选题">选题</option>
+          <option value="检索">检索</option>
+          <option value="综述">综述</option>
+          <option value="写作">写作</option>
+          <option value="方法">方法</option>
+          <option value="核引">核引</option>
+          <option value="投稿">投稿</option>
+        </select>
+        <button class="btn primary" id="task-add-submit" type="button">添加</button>
+        <button class="btn ghost" id="task-add-cancel" type="button">取消</button>
+      </div>
+      <div id="gate-blockers" class="gate-blockers"></div>
+      <div id="kanban" class="kanban">
+        <div class="loading"><span class="spinner" aria-hidden="true"></span>正在加载流程…</div>
+      </div>
     </div>
   </section>
 </div>
+
+<dialog id="project-dialog" class="dialog">
+  <form id="project-form" class="form">
+    <h2>项目设置</h2>
+    <label>项目名
+      <input name="name" required maxlength="200" value="{{ project.name }}">
+    </label>
+    <label>领域
+      <input name="field" value="{{ project.field or '' }}">
+    </label>
+    <label>研究问题
+      <textarea name="question" rows="3">{{ project.question or '' }}</textarea>
+    </label>
+    <label>简介
+      <textarea name="description" rows="3">{{ project.description or '' }}</textarea>
+    </label>
+    <p class="hint">项目设置保存到本地 SQLite，不会上传。</p>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close-dialog>取消</button>
+      <button class="btn primary" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', path='js/library.js') }}"></script>
+<script src="{{ url_for('static', path='js/search.js') }}"></script>
+<script src="{{ url_for('static', path='js/style.js') }}"></script>
+<script src="{{ url_for('static', path='js/polish.js') }}"></script>
+<script src="{{ url_for('static', path='js/paragraphs.js') }}"></script>
+<script src="{{ url_for('static', path='js/methods.js') }}"></script>
+<script src="{{ url_for('static', path='js/direction.js') }}"></script>
+<script src="{{ url_for('static', path='js/workflow.js') }}"></script>
 <script src="{{ url_for('static', path='js/workspace.js') }}"></script>
 {% endblock %}

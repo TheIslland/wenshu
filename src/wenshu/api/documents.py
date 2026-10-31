@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from ..errors import Conflict, NotFound
-from ..models import DocumentCreate, DocumentSave, now_iso
+from ..models import DocumentCreate, DocumentPatch, DocumentSave, now_iso
 from .deps import get_con
 
 router = APIRouter(prefix="/api", tags=["documents"])
@@ -81,6 +81,34 @@ def get_document(
     document_id: int,
     con: sqlite3.Connection = Depends(get_con),
 ) -> dict:
+    return _document(con, document_id)
+
+
+@router.patch("/documents/{document_id}")
+def patch_document(
+    document_id: int,
+    payload: DocumentPatch,
+    con: sqlite3.Connection = Depends(get_con),
+) -> dict:
+    current = _document(con, document_id)
+    changes = payload.model_dump(exclude_unset=True)
+    if not changes:
+        return current
+    fields: list[str] = []
+    values: list[object] = []
+    if changes.get("title") is not None:
+        fields.append("title=?")
+        values.append(str(changes["title"]).strip())
+    if changes.get("kind") is not None:
+        fields.append("kind=?")
+        values.append(str(changes["kind"]).strip())
+    if not fields:
+        return current
+    fields.append("updated_at=?")
+    values.append(now_iso())
+    values.append(document_id)
+    con.execute(f"UPDATE documents SET {', '.join(fields)} WHERE id=?", values)
+    con.commit()
     return _document(con, document_id)
 
 

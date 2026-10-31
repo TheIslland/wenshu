@@ -65,6 +65,11 @@ class DocumentSave(Base):
     version: int
 
 
+class DocumentPatch(Base):
+    title: str | None = Field(default=None, min_length=1, max_length=300)
+    kind: str | None = None
+
+
 class Snapshot(Base):
     id: int
     document_id: int

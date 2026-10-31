@@ -52,6 +52,17 @@ def test_outline(client, document):
     assert outline[1]["title"] == "一、导论"
 
 
+def test_rename_document(client, document):
+    response = client.patch(
+        f"/api/documents/{document['id']}", json={"title": "改名后的稿子"}
+    )
+    assert response.status_code == 200
+    assert response.json()["title"] == "改名后的稿子"
+    assert response.json()["version"] == document["version"]
+    assert client.get(f"/api/documents/{document['id']}").json()["title"] == "改名后的稿子"
+
+
+
 def test_delete_document(client, document):
     response = client.delete(f"/api/documents/{document['id']}")
     assert response.json()["ok"] is True

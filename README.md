@@ -3,6 +3,10 @@
 > 本地优先的中文文科科研文献与写作工作台。
 > 找文献、建库、体检文风、润色调段、做方法矩阵、核引用、导 docx——都在自己电脑上。
 
+![项目首页](docs/screenshots/dashboard.png)
+
+![工作台](docs/screenshots/workspace.png)
+
 [![ci](https://github.com/TheIslland/wenshu/actions/workflows/ci.yml/badge.svg)](https://github.com/TheIslland/wenshu/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-2f5d7c.svg)](LICENSE)
 [![python: 3.12](https://img.shields.io/badge/python-3.12-2f5d7c.svg)](pyproject.toml)

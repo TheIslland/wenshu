@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-import sys
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 NOREPLY_RE = re.compile(r"^[^@\s]+@users\.noreply\.github\.com$")

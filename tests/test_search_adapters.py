@@ -387,3 +387,19 @@ def test_zotero_item_mapping():
 
     attachment = {"key": "A1", "data": {"itemType": "attachment", "title": "PDF"}}
     assert ZoteroClient()._to_hit(attachment) is None
+
+def test_crossref_fetch_does_not_request_unsupported_language(monkeypatch):
+    from wenshu.services.search import crossref
+
+    seen = {}
+
+    class FakeClient:
+        def works(self, **params):
+            seen.update(params)
+            return {"message": {"items": []}}
+
+    monkeypatch.setattr(crossref, "_client", lambda: FakeClient())
+    adapter = CrossrefAdapter()
+    assert adapter._fetch("short video", limit=1, year_from=None, year_to=None, language=None) == []
+    assert "language" not in seen["select"]
+    assert "publisher" in seen["select"]

@@ -30,10 +30,11 @@ _SELECT = [
     "issue",
     "page",
     "type",
-    "language",
     "abstract",
     "URL",
     "is-referenced-by-count",
+    "publisher",
+    "subject",
 ]
 
 _TYPE_MAP = {

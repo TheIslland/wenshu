@@ -42,3 +42,9 @@ def test_bad_host_rejected(anon_client):
         headers={"Host": "evil.example", "X-Wenshu-Token": "test-token"},
     )
     assert response.status_code == 403
+
+
+def test_page_host_check_blocks_dns_rebinding(anon_client):
+    response = anon_client.get("/", headers={"Host": "evil.example"})
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "bad_host"

@@ -108,7 +108,7 @@ API key 只存本机 SQLite（权限 700/600），不上传、不写日志。支
 ## 架构
 
 ```
-浏览器（Jinja2 + 原生 JS + Vditor，无构建链）
+浏览器（Jinja2 + 原生 JS，无构建链；Vditor 可选，默认 textarea）
         │  fetch JSON + 本地 token
 FastAPI（只监听 127.0.0.1）
  ├─ api/            projects documents search library style polish paragraphs methods direction workflow citations export settings

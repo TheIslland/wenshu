@@ -48,12 +48,17 @@ class TokenMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
+        # Host check applies to pages too: DNS rebinding could otherwise read a
+        # server-rendered page (with its token) through an attacker-controlled name.
+        if not host_allowed(request, self.allowed_hosts):
+            if path.startswith("/api"):
+                body = {"error": {"code": "bad_host", "message": "只允许本机访问。"}}
+                return JSONResponse(body, status_code=403)
+            return JSONResponse(
+                {"error": {"code": "bad_host", "message": "只允许通过本机地址访问。"}},
+                status_code=403,
+            )
         if path.startswith("/api") and path != "/api/health":
-            if not host_allowed(request, self.allowed_hosts):
-                return JSONResponse(
-                    {"error": {"code": "bad_host", "message": "只允许本机访问。"}},
-                    status_code=403,
-                )
             supplied = request.headers.get("x-wenshu-token")
             auth = request.headers.get("authorization", "")
             if not supplied and auth.lower().startswith("bearer "):

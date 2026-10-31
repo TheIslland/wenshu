@@ -49,6 +49,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     cfg.ensure_dirs()
     app = create_app(cfg)
+    if cfg.demo:
+        from .demo import seed_demo
+
+        if seed_demo(app.state.db):
+            print("  演示数据：已创建「县城屏幕：短视频里的地方感」")
     port = _find_port(cfg.host, cfg.port)
     url = f"http://{cfg.host}:{port}"
     print(f"文枢 Wenshu {VERSION}")

@@ -26,3 +26,10 @@ credential leaks, citation fabrication and local-network exposure seriously.
 
 依赖只选 MIT/BSD/Apache-2.0/BlueOak；CSL 样式为 CC BY-SA 3.0 并单独署名。
 `uv.lock` 固定版本；CI 在 Linux/macOS/Windows 上跑测试。
+
+## 提交防线
+
+- `scripts/check_sensitive.py --staged` 是 pre-commit 钩子，扫描 key/token/私钥/密码赋值；`--all` 用于 CI 全仓审计。
+- `scripts/check_identity.py` 拒绝不含 `@` 的 commit 邮箱，防止把密码/用户名写进 `user.email`。
+- 安装钩子：`uv run python scripts/install_hooks.py`。
+- 发现泄露时：先轮换凭据，再改代码/历史，再强推；通知维护者，不要只删文件。

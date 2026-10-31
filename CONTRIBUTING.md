@@ -16,13 +16,16 @@ uv run wenshu --demo --no-browser
 ## 提交前
 
 ```bash
-git config user.email "you@example.com"   # 或 username@users.noreply.github.com
+uv sync --all-extras
+uv run python scripts/install_hooks.py   # 装一次即可
 uv run python scripts/check_identity.py
+uv run python scripts/check_sensitive.py --all
 uv run ruff check .
 uv run pytest -q
 ```
 
 **不要把密码、用户名、手机号填进 `git config user.email`**：公开仓库的提交元数据会永久暴露它。CI 会检查 author/committer 邮箱是否像邮箱。
+**不要把 key 写进代码/测试/文档**：pre-commit 会扫 `sk-`、`ghp_`、`hf_`、`AKIA`、私钥、`password=` 之类；占位符请写成 `test-...`、`example-...`、`change-me`。
 
 CI 跑 Linux / macOS / Windows。测试不能访问公网：检索用 `respx`，LLM 用 `FakeLLM`。
 

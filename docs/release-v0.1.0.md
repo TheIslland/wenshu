@@ -36,7 +36,7 @@ Mac 用户看 [docs/mac.md](docs/mac.md)。
 
 ## 验证
 
-- 254 个测试通过；`ruff check .` 通过。
+- 250+ 个测试通过；`ruff check .` 通过。
 - CI：Ubuntu、macOS 14 (arm64)、Windows × Python 3.12。
 - 干净 wheel 安装后 `wenshu --version` 与演示服务均验证通过。
 

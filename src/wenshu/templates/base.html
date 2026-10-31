@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="wenshu-token" content="{{ token }}">
+  <meta name="wenshu-demo" content="{{ '1' if demo else '0' }}">
+  <title>{% block title %}文枢 Wenshu{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">文</span>
+      <span class="brand-text">文枢 <small>Wenshu</small></span>
+    </a>
+    <nav class="topnav">
+      <a href="/">项目</a>
+      <a href="/settings">设置</a>
+      <span class="version">v{{ version }}</span>
+    </nav>
+  </header>
+
+  {% if demo %}
+  <div class="demo-banner">演示模式：AI 功能返回示例结果，不会调用真实模型。</div>
+  {% endif %}
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <span>本地优先 · 数据不离开这台电脑</span>
+    <span>风格体检面向写作质量，不针对任何 AI 检测系统</span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="{{ url_for('static', path='js/api.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

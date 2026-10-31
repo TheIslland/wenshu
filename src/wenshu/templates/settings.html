@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}设置 · 文枢{% endblock %}
+{% block content %}
+<section class="section narrow">
+  <div class="section-head">
+    <h1>设置</h1>
+    <span class="muted">只存在本机，不上传</span>
+  </div>
+
+  <form id="llm-form" class="panel form">
+    <h2>语言模型</h2>
+    <p class="muted">走 OpenAI 兼容协议。DeepSeek、OpenAI、Moonshot、智谱、Ollama 都能用。</p>
+    <label>预设
+      <select name="provider" id="llm-provider"></select>
+    </label>
+    <label>Base URL
+      <input name="base_url" id="llm-base-url" placeholder="https://api.deepseek.com/v1">
+    </label>
+    <label>模型
+      <input name="model" id="llm-model" placeholder="deepseek-chat">
+    </label>
+    <label>API Key
+      <input name="api_key" id="llm-api-key" type="password" autocomplete="off" placeholder="留空则不修改">
+    </label>
+    <p class="muted" id="llm-key-hint"></p>
+    <div class="form-actions">
+      <button type="submit" class="btn primary">保存</button>
+      <button type="button" class="btn ghost" id="test-llm">测试连接</button>
+    </div>
+  </form>
+
+  <form id="search-form-settings" class="panel form">
+    <h2>检索礼貌池</h2>
+    <label>联系邮箱（OpenAlex / Crossref 的 mailto）
+      <input name="mailto" id="search-mailto" type="email" placeholder="you@example.com">
+    </label>
+    <label>Semantic Scholar API Key（可选）
+      <input name="s2_api_key" id="s2-api-key" type="password" autocomplete="off" placeholder="留空则不修改">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="btn primary">保存</button>
+    </div>
+  </form>
+
+  <section class="panel">
+    <h2>数据</h2>
+    <p class="muted">数据目录：<code id="data-dir">{{ data_dir }}</code></p>
+    <p class="muted">备份：直接复制整个目录即可。API key 存在本地 SQLite，文件权限 600。</p>
+  </section>
+
+  <section class="panel disclaimer">
+    <h2>边界</h2>
+    <p>风格体检面向写作质量：删套话、拆长句、把评价改回机制。它不针对任何 AI 检测系统，也不承诺降低检测率。</p>
+    <p>AI 生成的文献线索必须逐条核验；没有核到的引用，导出时会列进「未核引清单」。</p>
+  </section>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/app.js') }}"></script>
+{% endblock %}

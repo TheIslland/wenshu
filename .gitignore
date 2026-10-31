@@ -1,0 +1,38 @@
+# data & runtime
+.venv/
+venv/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+data/
+tmp/
+out/
+logs/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# local notes that must never be published
+deliverables/
+research/

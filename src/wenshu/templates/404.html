@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}没找到 · 文枢{% endblock %}
+{% block content %}
+<section class="empty tall">
+  <p class="eyebrow">404</p>
+  <h1>{{ message or '这里没有东西。' }}</h1>
+  <p class="muted">可能是链接过期，或者项目被删了。</p>
+  <a class="btn primary" href="/">回到项目</a>
+</section>
+{% endblock %}

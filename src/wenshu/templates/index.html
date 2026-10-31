@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}文枢 Wenshu · 本地科研写作工作台{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">HUMANITIES RESEARCH WORKBENCH</p>
+    <h1>把找、核、对<br>从写作里拿出去。</h1>
+    <p class="lede">
+      文献检索、文献库、风格体检、润色调段、方法矩阵、研究流程与引用核验，
+      都在这台电脑上。每一句判断挂材料，每一本文献核到 DOI，每一次改写能回滚。
+    </p>
+    <div class="hero-actions">
+      <button class="btn primary" id="open-new-project">新建研究项目</button>
+      <a class="btn ghost" href="/settings">配置模型</a>
+    </div>
+  </div>
+  <aside class="hero-stats">
+    <div><strong>{{ totals.refs }}</strong><span>本文献</span></div>
+    <div><strong>{{ totals.documents }}</strong><span>篇文档</span></div>
+    <div><strong>{{ projects|length }}</strong><span>个项目</span></div>
+  </aside>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>研究项目</h2>
+    <span class="muted">最近更新在前</span>
+  </div>
+  {% if projects %}
+  <div class="project-grid">
+    {% for project in projects %}
+    <a class="project-card" href="/p/{{ project.id }}">
+      <div class="project-card-top">
+        <span class="tag">{{ project.field or '未填领域' }}</span>
+        <span class="muted">{{ project.updated_at[:10] }}</span>
+      </div>
+      <h3>{{ project.name }}</h3>
+      <p>{{ project.question or project.description or '还没有写研究问题。' }}</p>
+      <div class="project-card-meta">
+        <span>{{ project.document_count }} 篇文档</span>
+        <span>{{ project.ref_count }} 本文献</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <p>还没有项目。</p>
+    <p class="muted">新建一个，或者用 <code>wenshu --demo</code> 看演示数据。</p>
+    <button class="btn primary" id="open-new-project-empty">新建研究项目</button>
+  </div>
+  {% endif %}
+</section>
+
+<dialog id="new-project-dialog" class="dialog">
+  <form id="new-project-form" method="dialog">
+    <h2>新建研究项目</h2>
+    <label>项目名称
+      <input name="name" required maxlength="200" placeholder="例如：日本偶像文化与拟像理论">
+    </label>
+    <label>领域
+      <input name="field" maxlength="100" placeholder="文化研究 / 传播学 / 电影">
+    </label>
+    <label>研究问题（可后补）
+      <textarea name="question" rows="3" placeholder="一句话说清你要回答什么"></textarea>
+    </label>
+    <div class="dialog-actions">
+      <button type="button" class="btn ghost" id="cancel-new-project">取消</button>
+      <button type="submit" class="btn primary">创建</button>
+    </div>
+  </form>
+</dialog>
+
+<section class="section principles">
+  <div class="section-head"><h2>三条底线</h2></div>
+  <div class="principle-grid">
+    <article><h3>判断挂材料</h3><p>没有证据的判断不生成，只标「待补材料」。</p></article>
+    <article><h3>文献核到 DOI</h3><p>Crossref / OpenAlex 比对，核不到就标红，导出附清单。</p></article>
+    <article><h3>改写可回滚</h3><p>逐段 diff，接受前看得见每一处改动。</p></article>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/app.js') }}"></script>
+{% endblock %}

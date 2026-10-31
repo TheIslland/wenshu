@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · 文枢{% endblock %}
+{% block content %}
+<div id="workspace" data-project-id="{{ project.id }}"
+     data-project-name="{{ project.name }}" data-demo="{{ '1' if demo else '0' }}">
+
+  <header class="workspace-head">
+    <div>
+      <p class="eyebrow">{{ project.field or '研究项目' }}</p>
+      <h1>{{ project.name }}</h1>
+      <p class="lede">{{ project.question or '还没有写研究问题。' }}</p>
+    </div>
+    <div class="workspace-meta">
+      <span>{{ documents|length }} 篇文档</span>
+      <span>{{ ref_count }} 本文献</span>
+      <button class="btn ghost" id="workspace-settings">项目设置</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="工作区">
+    <button class="tab active" data-tab="overview" role="tab">概览</button>
+    <button class="tab" data-tab="writing" role="tab">写作</button>
+    <button class="tab" data-tab="library" role="tab">文献</button>
+    <button class="tab" data-tab="search" role="tab">检索</button>
+    <button class="tab" data-tab="style" role="tab">体检</button>
+    <button class="tab" data-tab="polish" role="tab">润色</button>
+    <button class="tab" data-tab="paragraphs" role="tab">调段</button>
+    <button class="tab" data-tab="methods" role="tab">方法</button>
+    <button class="tab" data-tab="direction" role="tab">方向</button>
+    <button class="tab" data-tab="workflow" role="tab">流程</button>
+  </nav>
+
+  <section class="tab-panel active" data-panel="overview">
+    <div class="panel-grid">
+      <article class="panel">
+        <h2>从哪开始</h2>
+        <ol class="steps">
+          <li><button class="link" data-goto="direction">先看研究方向</button>，把问题缩到能回答的尺寸。</li>
+          <li><button class="link" data-goto="search">检索文献</button>，或从 Zotero / RIS / BibTeX 导入。</li>
+          <li><button class="link" data-goto="writing">开始写</button>，逐段体检、润色、调段。</li>
+          <li><button class="link" data-goto="methods">做方法矩阵</button>，核引后导出。</li>
+        </ol>
+      </article>
+      <article class="panel">
+        <h2>项目状态</h2>
+        <dl class="stat-list">
+          <div><dt>文档</dt><dd>{{ documents|length }}</dd></div>
+          <div><dt>文献</dt><dd>{{ ref_count }}</dd></div>
+          <div><dt>研究问题</dt><dd>{{ '已写' if project.question else '待补' }}</dd></div>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="writing">
+    <div class="split">
+      <aside class="panel side">
+        <h2>文档</h2>
+        <div id="document-list" class="doc-list"></div>
+        <button class="btn ghost block" id="new-document">新建文档</button>
+      </aside>
+      <div class="panel editor-panel">
+        <div class="editor-toolbar">
+          <input id="document-title" class="title-input" aria-label="文档标题" placeholder="文档标题">
+          <span id="word-count" class="muted">0 字</span>
+          <button class="btn ghost" id="save-document">保存</button>
+          <button class="btn ghost" id="snapshot-document">快照</button>
+        </div>
+        <textarea id="editor" class="editor" spellcheck="false"
+          placeholder="从大纲开始，或者直接写第一段。Markdown：## 二级标题，[@key] 插引用。"></textarea>
+        <p class="hint">自动保存：停笔 1.5 秒。段落级操作在「体检 / 润色 / 调段」里。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="library">
+    <div class="panel">
+      <div class="toolbar">
+        <input id="ref-search" type="search" placeholder="搜标题、作者、摘要、全文">
+        <select id="ref-status">
+          <option value="">全部状态</option>
+          <option value="inbox">收件箱</option>
+          <option value="reading">在读</option>
+          <option value="read">已读</option>
+          <option value="cited">已引</option>
+        </select>
+        <button class="btn ghost" id="import-refs">导入 RIS / BibTeX / DOI</button>
+        <button class="btn ghost" id="zotero-import">从 Zotero 导入</button>
+      </div>
+      <div id="ref-table" class="table-wrap"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="search">
+    <div class="panel">
+      <form id="search-form" class="search-form">
+        <input name="query" type="search" placeholder="关键词 / 作者 / 篇名（中英文均可）" required>
+        <button class="btn primary" type="submit">检索</button>
+      </form>
+      <div class="chips" id="source-chips">
+        <label><input type="checkbox" value="openalex" checked> OpenAlex</label>
+        <label><input type="checkbox" value="crossref" checked> Crossref</label>
+        <label><input type="checkbox" value="semantic_scholar"> Semantic Scholar</label>
+        <label><input type="checkbox" value="arxiv"> arXiv</label>
+      </div>
+      <div id="search-results" class="results"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="style">
+    <div class="panel">
+      <div class="toolbar">
+        <button class="btn primary" id="analyze-document">体检当前文档</button>
+        <span class="muted">规则检测，标「风格风险」而非 AI 概率</span>
+      </div>
+      <div id="style-report" class="report">
+        <div class="empty"><p>还没有体检结果。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="polish">
+    <div class="panel">
+      <div class="toolbar">
+        <select id="polish-mode">
+          <option value="academic">学术化</option>
+          <option value="concise">简洁</option>
+          <option value="cohesive">衔接</option>
+          <option value="concrete">具体化</option>
+        </select>
+        <button class="btn primary" id="polish-run">润色选中 / 末段</button>
+      </div>
+      <textarea id="polish-input" class="editor short" placeholder="贴一段要润色的文字，或在写作页选中段落。"></textarea>
+      <div id="polish-result" class="rewrite-result"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="paragraphs">
+    <div class="panel">
+      <div class="toolbar">
+        <select id="paragraph-op">
+          <option value="compress">压缩</option>
+          <option value="expand">扩写</option>
+          <option value="reorder">重排</option>
+          <option value="argument">补论证</option>
+        </select>
+        <button class="btn primary" id="paragraph-run">调整</button>
+      </div>
+      <textarea id="paragraph-input" class="editor short" placeholder="贴一个段落。扩写与补论证只补证据/解释，缺材料会进 gaps。"></textarea>
+      <div id="paragraph-result" class="rewrite-result"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="methods">
+    <div class="panel">
+      <div class="toolbar">
+        <button class="btn primary" id="extract-methods">从文献抽取方法</button>
+        <span class="muted">矩阵可编辑；无证据的字段标「未抽取」</span>
+      </div>
+      <div id="method-matrix" class="table-wrap"></div>
+      <div id="method-trend" class="chart"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="direction">
+    <div class="panel">
+      <div class="toolbar">
+        <input id="direction-topic" placeholder="领域 / 现象 / 理论关键词" value="{{ project.name }}">
+        <button class="btn primary" id="direction-run">找方向</button>
+      </div>
+      <div id="direction-cards" class="cards"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="workflow">
+    <div class="panel">
+      <div class="toolbar">
+        <select id="workflow-template">
+          <option value="proposal">开题</option>
+          <option value="paper">论文</option>
+          <option value="submission">投稿</option>
+        </select>
+        <button class="btn ghost" id="apply-template">套用模板</button>
+        <span id="gate-status" class="muted"></span>
+      </div>
+      <div id="kanban" class="kanban"></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/workspace.js') }}"></script>
+{% endblock %}
